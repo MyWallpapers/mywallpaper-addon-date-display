@@ -1,6 +1,6 @@
 {
   "name": "Date Display",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "entry": "index.js",
   "description": "Beautiful date display widget with multi-language support and customizable fonts",
   "author": "MyWallpaper Team",
@@ -14,9 +14,7 @@
   "permissions": {
     "network": {
       "domains": [
-        "fonts.googleapis.com",
-        "fonts.gstatic.com",
-        "fonts.cdnfonts.com"
+        "*"
       ]
     }
   },
