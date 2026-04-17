@@ -10,7 +10,7 @@
     "display"
   ],
   "license": "MIT",
-  "repository": "https://github.com/MyWallpapers/mywallpaper-date-display",
+  "repository": "https://github.com/MyWallpapers/mywallpaper-addon-date-display",
   "permissions": {
     "network": {
       "domains": [
