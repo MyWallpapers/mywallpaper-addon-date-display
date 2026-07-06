@@ -1,29 +1,26 @@
 {
   "name": "Date Display",
-  "version": "1.5.6",
-  "entry": "index.js",
-  "description": "Beautiful date display widget with multi-language support and customizable fonts",
+  "version": "2.0.0",
+  "runtime": "trusted-native-canvas-v1",
+  "entry": "dist/index.html",
+  "description": "Beautiful date display add-on with multi-language support and customizable fonts",
   "author": "MyWallpaper Team",
-  "type": "widget",
+  "type": "addon",
   "categories": [
     "utilities",
     "display"
   ],
   "license": "MIT",
   "repository": "https://github.com/MyWallpapers/mywallpaper-addon-date-display",
-  "permissions": {
-    "network": {
-      "domains": [
-        "*"
-      ],
-      "read": true
-    }
-  },
   "defaultLayout": {
     "widthPercent": 50,
     "heightPercent": 10,
     "xPercent": 25,
-    "yPercent": 20
+    "yPercent": 20,
+    "rotation": 0
+  },
+  "ui": {
+    "pointerEvents": "none"
   },
   "settings": {
     "_sectionDisplay": {

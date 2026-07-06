@@ -1,5 +1,5 @@
-import { useSettings, useSettingsActions } from '@mywallpaper/sdk-react'
 import { useState, useEffect, useRef, useMemo, useCallback, type CSSProperties } from 'react'
+import { createRoot } from 'react-dom/client'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -41,6 +41,88 @@ interface FontData {
   families: string[]
   weights: Record<string, string[]>
   styles: Record<string, string[]>
+}
+
+interface MyWallpaperLayerApi {
+  root: HTMLElement
+  settings: {
+    get(): Partial<Settings>
+    subscribe(listener: (settings: Partial<Settings>) => void): () => void
+  }
+  lifecycle?: {
+    onDispose(listener: () => void): () => void
+  }
+}
+
+interface MyWallpaperApi {
+  layer: MyWallpaperLayerApi
+}
+
+declare global {
+  interface Window {
+    MyWallpaper?: MyWallpaperApi
+  }
+}
+
+const DEFAULT_SETTINGS: Settings = {
+  showDayOfWeek: true,
+  showDate: false,
+  dateFormat: 'long',
+  languageMode: 'preset',
+  language: 'en',
+  customDays: 'Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday',
+  customMonths: 'January,February,March,April,May,June,July,August,September,October,November,December',
+  fontMode: 'custom',
+  fontPreset: 'Inter',
+  customFontUrl: 'https://fonts.cdnfonts.com/css/anurati',
+  customFontFamily: 'CustomFont',
+  customFontWeight: '400',
+  customFontStyle: 'normal',
+  dayFontSize: 71,
+  dateFontSize: 48,
+  fontWeight: '600',
+  textColor: '#ffffff',
+  textAlign: 'center',
+  textTransform: 'uppercase',
+  textOpacity: 100,
+  letterSpacing: 30,
+}
+
+const layer = window.MyWallpaper?.layer
+const runtimeRoot = layer?.root ?? document.getElementById('root')
+
+if (runtimeRoot) {
+  runtimeRoot.classList.add('mwa-date-display-root')
+  runtimeRoot.style.width = '100%'
+  runtimeRoot.style.height = '100%'
+  runtimeRoot.style.margin = '0'
+  runtimeRoot.style.overflow = 'hidden'
+  runtimeRoot.style.background = 'transparent'
+}
+
+if (!layer) {
+  document.documentElement.style.width = '100%'
+  document.documentElement.style.height = '100%'
+  document.documentElement.style.margin = '0'
+  document.body.style.width = '100%'
+  document.body.style.height = '100%'
+  document.body.style.margin = '0'
+  document.body.style.overflow = 'hidden'
+  document.body.style.background = 'transparent'
+}
+
+function normalizeSettings(settings: Partial<Settings>): Settings {
+  return { ...DEFAULT_SETTINGS, ...settings }
+}
+
+function useLayerSettings(): Settings {
+  const [settings, setSettings] = useState<Settings>(() => normalizeSettings(layer?.settings.get() ?? {}))
+
+  useEffect(() => {
+    return layer?.settings.subscribe((next) => setSettings(normalizeSettings(next))) ?? (() => {})
+  }, [])
+
+  return settings
 }
 
 // ---------------------------------------------------------------------------
@@ -224,8 +306,7 @@ function deriveFontData(entries: FontFaceEntry[]): FontData {
 // ---------------------------------------------------------------------------
 
 export default function DateDisplay() {
-  const settings = useSettings<Settings>()
-  const { updateOptions } = useSettingsActions()
+  const settings = useLayerSettings()
 
   const [now, setNow] = useState(() => new Date())
 
@@ -235,9 +316,6 @@ export default function DateDisplay() {
   const loadedFontUrlRef = useRef<string | null>(null)
   const fontDataRef = useRef<FontData | null>(null)
   const addedFontsRef = useRef<FontFace[]>([])
-
-  const updateOptionsRef = useRef(updateOptions)
-  updateOptionsRef.current = updateOptions
 
   const loadIdRef = useRef(0)
 
@@ -260,8 +338,7 @@ export default function DateDisplay() {
   }, [])
 
   // -----------------------------------------------------------------------
-  // Font loading pipeline: proxy fetch CSS → parse @font-face entries →
-  // proxy fetch binaries → register via FontFace API (no blob URLs needed).
+  // Font loading pipeline: fetch CSS, parse @font-face entries, register via FontFace API.
   // -----------------------------------------------------------------------
   const loadFont = useCallback(
     async (cssUrl: string, skipDropdownUpdate?: boolean) => {
@@ -270,7 +347,7 @@ export default function DateDisplay() {
       const myLoadId = ++loadIdRef.current
 
       try {
-        // 1. Fetch the CSS (transparent proxy handles domain allowlist)
+        // 1. Fetch the CSS.
         if (loadIdRef.current !== myLoadId) return
         const response = await fetch(cssUrl)
         if (!response.ok) return
@@ -309,7 +386,7 @@ export default function DateDisplay() {
 
         if (loadIdRef.current !== myLoadId) return
 
-        // 5. Update metadata and dropdowns
+        // 5. Use first discovered family for rendering.
         const fontData = deriveFontData(entries)
         fontDataRef.current = fontData
 
@@ -317,34 +394,7 @@ export default function DateDisplay() {
         if (primaryFamily) {
           setLoadedFontFamily(primaryFamily)
 
-          if (!skipDropdownUpdate) {
-            const familyOptions = fontData.families.map((f) => ({ label: f, value: f }))
-            updateOptionsRef.current('customFontFamily', familyOptions, primaryFamily)
-
-            const weights = fontData.weights[primaryFamily] || []
-            if (weights.length > 0) {
-              const weightOptions = weights.map((w) => ({
-                label: WEIGHT_LABELS[w] || `Weight ${w}`,
-                value: w,
-              }))
-              const defaultWeight = weights.includes('400') ? '400'
-                : weights.includes('500') ? '500'
-                : weights.includes('600') ? '600'
-                : weights[0]
-              updateOptionsRef.current('customFontWeight', weightOptions, defaultWeight)
-            }
-
-            const styles = fontData.styles[primaryFamily] || []
-            if (styles.length <= 1) {
-              updateOptionsRef.current('customFontStyle', [{ label: 'Normal', value: 'normal' }], 'normal')
-            } else {
-              const styleOptions = styles.map((s) => ({
-                label: STYLE_LABELS[s] || s.charAt(0).toUpperCase() + s.slice(1),
-                value: s,
-              }))
-              updateOptionsRef.current('customFontStyle', styleOptions, 'normal')
-            }
-          }
+          void skipDropdownUpdate
         }
       } catch {
         // Font loading failed silently
@@ -482,3 +532,14 @@ export default function DateDisplay() {
     </div>
   )
 }
+
+if (!runtimeRoot) {
+  throw new Error('Date Display requires a root element')
+}
+
+const reactRoot = createRoot(runtimeRoot)
+reactRoot.render(<DateDisplay />)
+
+layer?.lifecycle?.onDispose(() => {
+  reactRoot.unmount()
+})
