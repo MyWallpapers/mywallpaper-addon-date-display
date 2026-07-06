@@ -37,12 +37,6 @@ interface Settings {
 
 }
 
-interface FontData {
-  families: string[]
-  weights: Record<string, string[]>
-  styles: Record<string, string[]>
-}
-
 interface MyWallpaperLayerApi {
   root: HTMLElement
   settings: {
@@ -123,28 +117,6 @@ function useLayerSettings(): Settings {
   }, [])
 
   return settings
-}
-
-// ---------------------------------------------------------------------------
-// Weight / style labels
-// ---------------------------------------------------------------------------
-
-const WEIGHT_LABELS: Record<string, string> = {
-  '100': 'Thin (100)',
-  '200': 'Extra-Light (200)',
-  '300': 'Light (300)',
-  '400': 'Regular (400)',
-  '500': 'Medium (500)',
-  '600': 'Semi-Bold (600)',
-  '700': 'Bold (700)',
-  '800': 'Extra-Bold (800)',
-  '900': 'Black (900)',
-}
-
-const STYLE_LABELS: Record<string, string> = {
-  normal: 'Normal',
-  italic: 'Italic',
-  oblique: 'Oblique',
 }
 
 // Default custom day/month names (English fallback)
@@ -240,24 +212,18 @@ interface FontFaceEntry {
   family: string
   weight: string
   style: string
-  url: string
 }
 
-/** Parse @font-face blocks and extract family, weight, style, and font file URL. */
+/** Parse @font-face blocks and extract family, weight, and style metadata. */
 function parseFontFaces(cssText: string): FontFaceEntry[] {
   const entries: FontFaceEntry[] = []
-  const blocks = cssText.match(/@font-face\s*\{[^}]+\}/gi)
-    || cssText.match(/@font-face\s*\{[\s\S]*?\}/gi)
-    || []
+  const blocks = [...cssText.matchAll(/@font-face\s*\{([\s\S]*?)\}/gi)].map((match) => match[1])
 
   for (const block of blocks) {
     const familyMatch = block.match(/font-family\s*:\s*(['"]?)([^;'"]+)\1/i)
     if (!familyMatch) continue
     const family = familyMatch[2].trim().replace(/^['"]|['"]$/g, '').trim()
     if (!family || GENERIC_FAMILIES.has(family.toLowerCase())) continue
-
-    const urlMatch = block.match(/url\(\s*['"]?(https?:\/\/[^'")]+)['"]?\s*\)/i)
-    if (!urlMatch) continue
 
     let weight = '400'
     const weightMatch = block.match(/font-weight\s*:\s*([^;}\s]+)/i)
@@ -272,33 +238,47 @@ function parseFontFaces(cssText: string): FontFaceEntry[] {
       style = styleMatch[1].trim().toLowerCase()
     }
 
-    entries.push({ family, weight, style, url: urlMatch[1] })
+    entries.push({ family, weight, style })
   }
 
   return entries
 }
 
-/** Derive aggregated font metadata from parsed entries (for dropdown updates). */
-function deriveFontData(entries: FontFaceEntry[]): FontData {
-  const result: FontData = { families: [], weights: {}, styles: {} }
-  const seen = new Set<string>()
+const DIRECT_FONT_FILE_RE = /\.(?:woff2?|ttf|otf)(?:[?#].*)?$/i
 
-  for (const { family, weight, style } of entries) {
-    if (!seen.has(family)) {
-      seen.add(family)
-      result.families.push(family)
-      result.weights[family] = []
-      result.styles[family] = []
+function isDirectFontFileUrl(url: string): boolean {
+  return DIRECT_FONT_FILE_RE.test(url)
+}
+
+function titleCaseFontSlug(value: string): string | null {
+  const cleaned = value
+    .replace(/\.[a-z0-9]+$/i, '')
+    .replace(/\b(?:thin|hairline|extra-light|extralight|ultralight|light|regular|normal|medium|semi-bold|semibold|bold|extra-bold|extrabold|ultrabold|black|heavy|italic|oblique)\b/gi, ' ')
+    .replace(/[-_+]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!cleaned) return null
+  return cleaned.replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function inferFontFamilyFromUrl(rawUrl: string): string | null {
+  try {
+    const url = new URL(rawUrl)
+    const family = url.searchParams.get('family')
+    if (family) {
+      const decoded = decodeURIComponent(family).replace(/\+/g, ' ').split(':')[0]?.trim()
+      if (decoded) return decoded
     }
-    if (!result.weights[family].includes(weight)) result.weights[family].push(weight)
-    if (!result.styles[family].includes(style)) result.styles[family].push(style)
-  }
 
-  for (const family of Object.keys(result.weights)) {
-    result.weights[family].sort((a, b) => parseInt(a) - parseInt(b))
-  }
+    const parts = decodeURIComponent(url.pathname).split('/').filter(Boolean)
+    const cssIndex = parts.indexOf('css')
+    if (cssIndex >= 0 && parts[cssIndex + 1]) return titleCaseFontSlug(parts[cssIndex + 1])
 
-  return result
+    return titleCaseFontSlug(parts[parts.length - 1] ?? '')
+  } catch {
+    return null
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -313,10 +293,8 @@ export default function DateDisplay() {
   // State to trigger re-render when custom font family is extracted
   const [loadedFontFamily, setLoadedFontFamily] = useState<string | null>(null)
 
-  const loadedFontUrlRef = useRef<string | null>(null)
-  const fontDataRef = useRef<FontData | null>(null)
-  const addedFontsRef = useRef<FontFace[]>([])
-
+  const cssLinkRef = useRef<HTMLLinkElement | null>(null)
+  const directFontFaceRef = useRef<FontFace | null>(null)
   const loadIdRef = useRef(0)
 
   // -----------------------------------------------------------------------
@@ -330,87 +308,78 @@ export default function DateDisplay() {
     return () => clearInterval(timer)
   }, [now])
 
-  // Remove previously loaded FontFace objects on unmount
-  useEffect(() => {
-    return () => {
-      for (const f of addedFontsRef.current) document.fonts.delete(f)
+  const clearLoadedFont = useCallback(() => {
+    cssLinkRef.current?.remove()
+    cssLinkRef.current = null
+
+    if (directFontFaceRef.current) {
+      document.fonts.delete(directFontFaceRef.current)
+      directFontFaceRef.current = null
     }
   }, [])
 
+  useEffect(() => () => clearLoadedFont(), [clearLoadedFont])
+
   // -----------------------------------------------------------------------
-  // Font loading pipeline: fetch CSS, parse @font-face entries, register via FontFace API.
+  // Font loading pipeline: let the browser load CSS font sheets natively.
   // -----------------------------------------------------------------------
   const loadFont = useCallback(
-    async (cssUrl: string, skipDropdownUpdate?: boolean) => {
-      if (!cssUrl) return
+    async (
+      fontUrl: string,
+      options?: { directFamily?: string; weight?: string; style?: string },
+    ) => {
+      if (!fontUrl) return
 
       const myLoadId = ++loadIdRef.current
+      clearLoadedFont()
+      setLoadedFontFamily(null)
+
+      if (isDirectFontFileUrl(fontUrl)) {
+        const family = options?.directFamily || 'CustomFont'
+        const face = new FontFace(family, `url("${fontUrl.replace(/"/g, '\\"')}")`, {
+          weight: options?.weight || '400',
+          style: options?.style || 'normal',
+        })
+
+        if (loadIdRef.current !== myLoadId) return
+        try {
+          await face.load()
+          if (loadIdRef.current !== myLoadId) return
+          document.fonts.add(face)
+          directFontFaceRef.current = face
+          setLoadedFontFamily(family)
+        } catch {
+          setLoadedFontFamily(null)
+        }
+        return
+      }
+
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = fontUrl
+      document.head.appendChild(link)
+      cssLinkRef.current = link
+
+      const inferredFamily = inferFontFamilyFromUrl(fontUrl)
+      if (inferredFamily) setLoadedFontFamily(inferredFamily)
 
       try {
-        // 1. Fetch the CSS.
-        if (loadIdRef.current !== myLoadId) return
-        const response = await fetch(cssUrl)
-        if (!response.ok) return
-        if (loadIdRef.current !== myLoadId) return
-
-        loadedFontUrlRef.current = cssUrl
-        const cssText = await response.text()
-
-        // 2. Parse @font-face entries (family, weight, style, URL)
-        const entries = parseFontFaces(cssText)
-        if (entries.length === 0) return
-
-        // 3. Remove previously registered fonts
-        for (const f of addedFontsRef.current) document.fonts.delete(f)
-        addedFontsRef.current = []
-
-        // 4. Fetch each font binary and register via FontFace API
-        for (const entry of entries) {
-          if (loadIdRef.current !== myLoadId) return
-          try {
-            const fontResp = await fetch(entry.url)
-            if (!fontResp.ok) continue
-
-            const fontBuffer = await fontResp.arrayBuffer()
-            const face = new FontFace(entry.family, fontBuffer, {
-              weight: entry.weight,
-              style: entry.style,
-            })
-            await face.load()
-            document.fonts.add(face)
-            addedFontsRef.current.push(face)
-          } catch {
-            // Skip individual font files that fail
-          }
-        }
-
-        if (loadIdRef.current !== myLoadId) return
-
-        // 5. Use first discovered family for rendering.
-        const fontData = deriveFontData(entries)
-        fontDataRef.current = fontData
-
-        const primaryFamily = fontData.families[0]
-        if (primaryFamily) {
-          setLoadedFontFamily(primaryFamily)
-
-          void skipDropdownUpdate
-        }
+        const response = await fetch(fontUrl)
+        if (!response.ok || loadIdRef.current !== myLoadId) return
+        const entries = parseFontFaces(await response.text())
+        const primaryFamily = entries[0]?.family
+        if (primaryFamily && loadIdRef.current === myLoadId) setLoadedFontFamily(primaryFamily)
       } catch {
-        // Font loading failed silently
+        // The <link> path still works for normal cross-origin stylesheet loading.
       }
     },
-    [],
+    [clearLoadedFont],
   )
 
   // -----------------------------------------------------------------------
   // Trigger font loading when settings change
   // -----------------------------------------------------------------------
   useEffect(() => {
-    // Always reset cached URL so font changes trigger a fresh load.
-    // The previous <style> may have been replaced by a different font.
-    loadedFontUrlRef.current = null
-
     if (settings.fontMode === 'custom' && settings.customFontUrl) {
       let url = settings.customFontUrl
       if (!url.startsWith('http://') && !url.startsWith('https://')) return
@@ -430,17 +399,30 @@ export default function DateDisplay() {
         return
       }
 
-      loadFont(url)
+      loadFont(url, {
+        directFamily: settings.customFontFamily || 'CustomFont',
+        weight: settings.customFontWeight || settings.fontWeight || '400',
+        style: settings.customFontStyle || 'normal',
+      })
     } else if (settings.fontMode === 'preset') {
       const fontName = settings.fontPreset || 'Inter'
       const fontUrl = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}:wght@300;400;500;600;700;800&display=swap`
-      loadFont(fontUrl, true)
+      loadFont(fontUrl)
     } else {
-      // Reset font state
+      clearLoadedFont()
       setLoadedFontFamily(null)
-      fontDataRef.current = null
     }
-  }, [settings.fontMode, settings.fontPreset, settings.customFontUrl, loadFont])
+  }, [
+    clearLoadedFont,
+    loadFont,
+    settings.customFontFamily,
+    settings.customFontStyle,
+    settings.customFontUrl,
+    settings.customFontWeight,
+    settings.fontMode,
+    settings.fontPreset,
+    settings.fontWeight,
+  ])
 
   // -----------------------------------------------------------------------
   // Derived values
@@ -457,12 +439,18 @@ export default function DateDisplay() {
   // Font family string
   const fontFamily = useMemo(() => {
     if (settings.fontMode === 'custom') {
-      const actual = loadedFontFamily || settings.customFontFamily || 'sans-serif'
+      const inferredFamily = settings.customFontUrl && !isDirectFontFileUrl(settings.customFontUrl)
+        ? inferFontFamilyFromUrl(settings.customFontUrl)
+        : null
+      const configuredFamily = settings.customFontFamily && settings.customFontFamily !== 'CustomFont'
+        ? settings.customFontFamily
+        : null
+      const actual = loadedFontFamily || configuredFamily || inferredFamily || settings.customFontFamily || 'sans-serif'
       return `"${actual}", sans-serif`
     }
     const preset = settings.fontPreset || 'Inter'
     return `"${preset}", sans-serif`
-  }, [settings.fontMode, settings.fontPreset, settings.customFontFamily, loadedFontFamily])
+  }, [settings.fontMode, settings.fontPreset, settings.customFontFamily, settings.customFontUrl, loadedFontFamily])
 
   const fontWeight = settings.fontMode === 'custom'
     ? settings.customFontWeight || settings.fontWeight || '600'
