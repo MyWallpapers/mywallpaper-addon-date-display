@@ -1,8 +1,12 @@
 {
   "name": "Date Display",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "runtime": "trusted-native-canvas-v1",
   "entry": "dist/index.html",
+  "native": {
+    "runtime": "windhawk-native-v1",
+    "entry": "native/mod.wh.cpp"
+  },
   "description": "Beautiful date display add-on with multi-language support and customizable fonts",
   "author": "MyWallpaper Team",
   "type": "addon",
