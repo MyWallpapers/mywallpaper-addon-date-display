@@ -1,489 +1,362 @@
 {
+  "runtime": "canvas-v1",
   "name": "Date Display",
-  "version": "2.1.0",
-  "runtime": "trusted-native-canvas-v1",
+  "description": "Displays a localized date, weekday and optional clock with flexible typography and appearance controls.",
+  "version": "3.0.0",
   "entry": "dist/index.html",
-  "native": {
-    "runtime": "windhawk-native-v1",
-    "entry": "native/mod.wh.cpp"
-  },
-  "description": "Beautiful date display add-on with multi-language support and customizable fonts",
-  "author": "MyWallpaper Team",
-  "type": "addon",
-  "categories": [
-    "utilities",
-    "display"
-  ],
-  "license": "MIT",
-  "repository": "https://github.com/MyWallpapers/mywallpaper-addon-date-display",
-  "defaultLayout": {
-    "widthPercent": 50,
-    "heightPercent": 10,
-    "xPercent": 25,
-    "yPercent": 20,
-    "rotation": 0
-  },
+  "thumbnail": "preview.png",
+  "deviceSettingsVersion": "1",
   "ui": {
     "pointerEvents": "none"
   },
-  "settings": {
-    "_sectionDisplay": {
+  "settings": [
+    {
+      "id": "content",
       "type": "section",
-      "content": {
-        "label": "Display Options"
-      }
+      "label": "Content"
     },
-    "showDayOfWeek": {
+    {
+      "id": "showDayOfWeek",
       "type": "boolean",
-      "content": {
-        "label": "Show Day of Week",
-        "default": true
-      }
+      "label": "Weekday",
+      "parent": "content",
+      "scope": "layer",
+      "default": true
     },
-    "showDate": {
+    {
+      "id": "showDate",
       "type": "boolean",
-      "content": {
-        "label": "Show Date",
-        "default": false
-      }
+      "label": "Date",
+      "parent": "content",
+      "scope": "layer",
+      "default": true
     },
-    "dateFormat": {
+    {
+      "id": "dateFormat",
       "type": "select",
-      "content": {
-        "label": "Date Format",
-        "default": "long",
-        "options": [
-          {
-            "label": "Long (January 20, 2026)",
-            "value": "long"
-          },
-          {
-            "label": "Short (Jan 20, 2026)",
-            "value": "short"
-          },
-          {
-            "label": "Numeric (20/01/2026)",
-            "value": "numeric"
-          },
-          {
-            "label": "Numeric US (01/20/2026)",
-            "value": "numeric-us"
-          },
-          {
-            "label": "ISO (2026-01-20)",
-            "value": "iso"
-          },
-          {
-            "label": "Day & Month (20 January)",
-            "value": "day-month"
-          },
-          {
-            "label": "Month & Day (January 20)",
-            "value": "month-day"
-          }
-        ],
-        "showIf": {
-          "setting": "showDate",
-          "equals": true
-        }
-      }
+      "label": "Date format",
+      "parent": "content",
+      "scope": "layer",
+      "default": "long",
+      "showIf": { "setting": "showDate", "equals": true },
+      "options": [
+        { "label": "Full", "value": "full" },
+        { "label": "Long", "value": "long" },
+        { "label": "Medium", "value": "medium" },
+        { "label": "Short", "value": "short" },
+        { "label": "ISO (2026-08-03)", "value": "iso" }
+      ]
     },
-    "_sectionLanguage": {
+    {
+      "id": "showTime",
+      "type": "boolean",
+      "label": "Time",
+      "parent": "content",
+      "scope": "layer",
+      "default": false
+    },
+    {
+      "id": "timeFormat",
+      "type": "select",
+      "label": "Clock format",
+      "parent": "content",
+      "scope": "layer",
+      "default": "24h",
+      "showIf": { "setting": "showTime", "equals": true },
+      "options": [
+        { "label": "24 hour", "value": "24h" },
+        { "label": "12 hour", "value": "12h" }
+      ]
+    },
+    {
+      "id": "showSeconds",
+      "type": "boolean",
+      "label": "Show seconds",
+      "parent": "content",
+      "scope": "layer",
+      "default": false,
+      "showIf": { "setting": "showTime", "equals": true }
+    },
+    {
+      "id": "language",
       "type": "section",
-      "content": {
-        "label": "Language"
-      }
+      "label": "Language"
     },
-    "languageMode": {
+    {
+      "id": "locale",
       "type": "select",
-      "content": {
-        "label": "Language Mode",
-        "default": "preset",
-        "options": [
-          {
-            "label": "Preset Language",
-            "value": "preset"
-          },
-          {
-            "label": "Custom Names",
-            "value": "custom"
-          }
-        ]
-      }
+      "label": "Locale",
+      "description": "System follows the Windows language exposed by the browser.",
+      "parent": "language",
+      "scope": "layer",
+      "default": "system",
+      "options": [
+        { "label": "System", "value": "system" },
+        { "label": "English", "value": "en-US" },
+        { "label": "Français", "value": "fr-FR" },
+        { "label": "Deutsch", "value": "de-DE" },
+        { "label": "Español", "value": "es-ES" },
+        { "label": "Italiano", "value": "it-IT" },
+        { "label": "Português", "value": "pt-BR" },
+        { "label": "日本語", "value": "ja-JP" },
+        { "label": "한국어", "value": "ko-KR" },
+        { "label": "中文", "value": "zh-CN" },
+        { "label": "Русский", "value": "ru-RU" },
+        { "label": "العربية", "value": "ar" }
+      ]
     },
-    "language": {
-      "type": "select",
-      "content": {
-        "label": "Language",
-        "default": "en",
-        "options": [
-          {
-            "label": "English",
-            "value": "en"
-          },
-          {
-            "label": "Français",
-            "value": "fr"
-          },
-          {
-            "label": "Deutsch",
-            "value": "de"
-          },
-          {
-            "label": "Español",
-            "value": "es"
-          },
-          {
-            "label": "Italiano",
-            "value": "it"
-          },
-          {
-            "label": "Português",
-            "value": "pt"
-          },
-          {
-            "label": "日本語",
-            "value": "ja"
-          },
-          {
-            "label": "中文",
-            "value": "zh"
-          },
-          {
-            "label": "한국어",
-            "value": "ko"
-          },
-          {
-            "label": "Русский",
-            "value": "ru"
-          },
-          {
-            "label": "العربية",
-            "value": "ar"
-          }
-        ],
-        "showIf": {
-          "setting": "languageMode",
-          "equals": "preset"
-        }
-      }
-    },
-    "customDays": {
-      "type": "string",
-      "content": {
-        "label": "Custom Day Names",
-        "description": "Comma-separated: Sun,Mon,Tue,Wed,Thu,Fri,Sat",
-        "default": "Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday",
-        "placeholder": "Sunday,Monday,Tuesday,...",
-        "showIf": {
-          "setting": "languageMode",
-          "equals": "custom"
-        }
-      }
-    },
-    "customMonths": {
-      "type": "string",
-      "content": {
-        "label": "Custom Month Names",
-        "description": "Comma-separated: Jan,Feb,Mar,...",
-        "default": "January,February,March,April,May,June,July,August,September,October,November,December",
-        "placeholder": "January,February,March,...",
-        "showIf": {
-          "setting": "languageMode",
-          "equals": "custom"
-        }
-      }
-    },
-    "_sectionFont": {
+    {
+      "id": "customNames",
       "type": "section",
-      "content": {
-        "label": "Font"
-      }
+      "label": "Custom names",
+      "description": "Optional replacements for the localized weekday and month names.",
+      "parent": "language",
+      "defaultCollapsed": true
     },
-    "fontMode": {
-      "type": "select",
-      "content": {
-        "label": "Font Source",
-        "default": "custom",
-        "options": [
-          {
-            "label": "Preset Fonts",
-            "value": "preset"
-          },
-          {
-            "label": "Custom URL",
-            "value": "custom"
-          }
-        ]
-      }
+    {
+      "id": "useCustomNames",
+      "type": "boolean",
+      "label": "Use custom names",
+      "parent": "customNames",
+      "scope": "layer",
+      "default": false
     },
-    "fontPreset": {
-      "type": "select",
-      "content": {
-        "label": "Font Family",
-        "default": "Inter",
-        "options": [
-          {
-            "label": "Inter",
-            "value": "Inter"
-          },
-          {
-            "label": "Roboto",
-            "value": "Roboto"
-          },
-          {
-            "label": "Outfit",
-            "value": "Outfit"
-          },
-          {
-            "label": "Poppins",
-            "value": "Poppins"
-          },
-          {
-            "label": "Montserrat",
-            "value": "Montserrat"
-          },
-          {
-            "label": "Open Sans",
-            "value": "Open Sans"
-          },
-          {
-            "label": "Lato",
-            "value": "Lato"
-          },
-          {
-            "label": "Playfair Display",
-            "value": "Playfair Display"
-          },
-          {
-            "label": "Merriweather",
-            "value": "Merriweather"
-          },
-          {
-            "label": "Source Code Pro",
-            "value": "Source Code Pro"
-          },
-          {
-            "label": "JetBrains Mono",
-            "value": "JetBrains Mono"
-          }
-        ],
-        "showIf": {
-          "setting": "fontMode",
-          "equals": "preset"
-        }
-      }
+    {
+      "id": "customDays",
+      "type": "textarea",
+      "label": "Weekdays",
+      "description": "Seven comma-separated names, Sunday first.",
+      "parent": "customNames",
+      "scope": "layer",
+      "default": "Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday",
+      "showIf": { "setting": "useCustomNames", "equals": true }
     },
-    "customFontUrl": {
-      "type": "string",
-      "content": {
-        "label": "Custom Font URL",
-        "description": "Google Fonts URL or direct font file URL",
-        "default": "https://fonts.cdnfonts.com/css/anurati",
-        "placeholder": "https://fonts.googleapis.com/css2?family=...",
-        "showIf": {
-          "setting": "fontMode",
-          "equals": "custom"
-        }
-      }
+    {
+      "id": "customMonths",
+      "type": "textarea",
+      "label": "Months",
+      "description": "Twelve comma-separated names, January first.",
+      "parent": "customNames",
+      "scope": "layer",
+      "default": "January,February,March,April,May,June,July,August,September,October,November,December",
+      "showIf": { "setting": "useCustomNames", "equals": true }
     },
-    "customFontFamily": {
-      "type": "select",
-      "content": {
-        "label": "Custom Font Family",
-        "description": "Select from available fonts (load URL first)",
-        "default": "CustomFont",
-        "options": [
-          {
-            "label": "Custom Font",
-            "value": "CustomFont"
-          }
-        ],
-        "showIf": {
-          "setting": "fontMode",
-          "equals": "custom"
-        }
-      }
-    },
-    "customFontWeight": {
-      "type": "select",
-      "content": {
-        "label": "Custom Font Weight",
-        "description": "Available weights for the selected font",
-        "default": "400",
-        "options": [
-          {
-            "label": "Regular (400)",
-            "value": "400"
-          }
-        ],
-        "showIf": {
-          "setting": "fontMode",
-          "equals": "custom"
-        }
-      }
-    },
-    "customFontStyle": {
-      "type": "select",
-      "content": {
-        "label": "Custom Font Style",
-        "description": "Normal or Italic (if available)",
-        "default": "normal",
-        "options": [
-          {
-            "label": "Normal",
-            "value": "normal"
-          }
-        ],
-        "showIf": {
-          "setting": "fontMode",
-          "equals": "custom"
-        }
-      }
-    },
-    "_sectionStyle": {
+    {
+      "id": "typography",
       "type": "section",
-      "content": {
-        "label": "Style"
-      }
+      "label": "Typography"
     },
-    "dayFontSize": {
+    {
+      "id": "fontSource",
+      "type": "select",
+      "label": "Font source",
+      "parent": "typography",
+      "scope": "layer",
+      "default": "system",
+      "options": [
+        { "label": "Installed font", "value": "system" },
+        { "label": "Remote font", "value": "remote" }
+      ]
+    },
+    {
+      "id": "fontFamily",
+      "type": "string",
+      "label": "Font family",
+      "description": "For example Segoe UI, Inter or Georgia.",
+      "parent": "typography",
+      "scope": "layer",
+      "default": "Segoe UI"
+    },
+    {
+      "id": "fontUrl",
+      "type": "string",
+      "label": "Font stylesheet or file URL",
+      "parent": "typography",
+      "scope": "layer",
+      "default": "",
+      "placeholder": "https://fonts.googleapis.com/css2?family=Inter",
+      "showIf": { "setting": "fontSource", "equals": "remote" }
+    },
+    {
+      "id": "fontWeight",
+      "type": "select",
+      "label": "Weight",
+      "parent": "typography",
+      "scope": "layer",
+      "default": "600",
+      "options": [
+        { "label": "Light", "value": "300" },
+        { "label": "Regular", "value": "400" },
+        { "label": "Medium", "value": "500" },
+        { "label": "Semibold", "value": "600" },
+        { "label": "Bold", "value": "700" },
+        { "label": "Black", "value": "900" }
+      ]
+    },
+    {
+      "id": "alignment",
+      "type": "select",
+      "label": "Alignment",
+      "parent": "typography",
+      "scope": "layer",
+      "default": "center",
+      "options": [
+        { "label": "Left", "value": "left" },
+        { "label": "Center", "value": "center" },
+        { "label": "Right", "value": "right" }
+      ]
+    },
+    {
+      "id": "textTransform",
+      "type": "select",
+      "label": "Letter case",
+      "parent": "typography",
+      "scope": "layer",
+      "default": "none",
+      "options": [
+        { "label": "Original", "value": "none" },
+        { "label": "Uppercase", "value": "uppercase" },
+        { "label": "Lowercase", "value": "lowercase" },
+        { "label": "Capitalize", "value": "capitalize" }
+      ]
+    },
+    {
+      "id": "dayFontSize",
       "type": "range",
-      "content": {
-        "label": "Day of Week Size",
-        "default": 71,
-        "min": 12,
-        "max": 120,
-        "step": 1,
-        "showIf": {
-          "setting": "showDayOfWeek",
-          "equals": true
-        }
-      }
+      "label": "Weekday size",
+      "parent": "typography",
+      "scope": "layer",
+      "default": 42,
+      "min": 8,
+      "max": 160,
+      "step": 1
     },
-    "dateFontSize": {
+    {
+      "id": "dateFontSize",
       "type": "range",
-      "content": {
-        "label": "Date Size",
-        "default": 48,
-        "min": 12,
-        "max": 200,
-        "step": 1,
-        "showIf": {
-          "setting": "showDate",
-          "equals": true
-        }
-      }
+      "label": "Date size",
+      "parent": "typography",
+      "scope": "layer",
+      "default": 64,
+      "min": 8,
+      "max": 200,
+      "step": 1
     },
-    "fontWeight": {
-      "type": "select",
-      "content": {
-        "label": "Font Weight",
-        "default": "600",
-        "options": [
-          {
-            "label": "Light (300)",
-            "value": "300"
-          },
-          {
-            "label": "Regular (400)",
-            "value": "400"
-          },
-          {
-            "label": "Medium (500)",
-            "value": "500"
-          },
-          {
-            "label": "Semi-Bold (600)",
-            "value": "600"
-          },
-          {
-            "label": "Bold (700)",
-            "value": "700"
-          },
-          {
-            "label": "Extra-Bold (800)",
-            "value": "800"
-          }
-        ],
-        "showIf": {
-          "setting": "fontMode",
-          "equals": "preset"
-        }
-      }
+    {
+      "id": "timeFontSize",
+      "type": "range",
+      "label": "Time size",
+      "parent": "typography",
+      "scope": "layer",
+      "default": 52,
+      "min": 8,
+      "max": 200,
+      "step": 1,
+      "showIf": { "setting": "showTime", "equals": true }
     },
-    "textColor": {
+    {
+      "id": "letterSpacing",
+      "type": "range",
+      "label": "Letter spacing",
+      "parent": "typography",
+      "scope": "layer",
+      "default": 1,
+      "min": -4,
+      "max": 30,
+      "step": 0.5
+    },
+    {
+      "id": "appearance",
+      "type": "section",
+      "label": "Appearance"
+    },
+    {
+      "id": "primaryColor",
       "type": "color",
-      "content": {
-        "label": "Text Color",
-        "default": "#ffffff"
-      }
+      "label": "Primary text",
+      "parent": "appearance",
+      "scope": "layer",
+      "default": "#ffffff"
     },
-    "textAlign": {
-      "type": "select",
-      "content": {
-        "label": "Text Alignment",
-        "default": "center",
-        "options": [
-          {
-            "label": "Left",
-            "value": "left"
-          },
-          {
-            "label": "Center",
-            "value": "center"
-          },
-          {
-            "label": "Right",
-            "value": "right"
-          }
-        ]
-      }
+    {
+      "id": "secondaryColor",
+      "type": "color",
+      "label": "Secondary text",
+      "parent": "appearance",
+      "scope": "layer",
+      "default": "#b9c3d6"
     },
-    "textTransform": {
-      "type": "select",
-      "content": {
-        "label": "Text Case",
-        "default": "uppercase",
-        "options": [
-          {
-            "label": "Normal",
-            "value": "none"
-          },
-          {
-            "label": "UPPERCASE",
-            "value": "uppercase"
-          },
-          {
-            "label": "lowercase",
-            "value": "lowercase"
-          },
-          {
-            "label": "Capitalize",
-            "value": "capitalize"
-          }
-        ]
-      }
-    },
-    "textOpacity": {
+    {
+      "id": "opacity",
       "type": "range",
-      "content": {
-        "label": "Text Opacity",
-        "default": 100,
-        "min": 0,
-        "max": 100,
-        "step": 1
-      }
+      "label": "Text opacity",
+      "parent": "appearance",
+      "scope": "layer",
+      "default": 100,
+      "min": 10,
+      "max": 100,
+      "step": 1
     },
-    "letterSpacing": {
+    {
+      "id": "shadowStrength",
       "type": "range",
-      "content": {
-        "label": "Letter Spacing",
-        "default": 30,
-        "min": -5,
-        "max": 50,
-        "step": 0.5
-      }
+      "label": "Shadow strength",
+      "parent": "appearance",
+      "scope": "layer",
+      "default": 35,
+      "min": 0,
+      "max": 100,
+      "step": 1
+    },
+    {
+      "id": "shadowColor",
+      "type": "color",
+      "label": "Shadow color",
+      "parent": "appearance",
+      "scope": "layer",
+      "default": "#000000"
+    },
+    {
+      "id": "backgroundColor",
+      "type": "color",
+      "label": "Background",
+      "parent": "appearance",
+      "scope": "layer",
+      "alpha": true,
+      "default": "#00000000"
+    },
+    {
+      "id": "backgroundBlur",
+      "type": "range",
+      "label": "Background blur",
+      "parent": "appearance",
+      "scope": "layer",
+      "default": 0,
+      "min": 0,
+      "max": 40,
+      "step": 1
+    },
+    {
+      "id": "cornerRadius",
+      "type": "range",
+      "label": "Corner radius",
+      "parent": "appearance",
+      "scope": "layer",
+      "default": 18,
+      "min": 0,
+      "max": 64,
+      "step": 1
+    },
+    {
+      "id": "padding",
+      "type": "range",
+      "label": "Padding",
+      "parent": "appearance",
+      "scope": "layer",
+      "default": 20,
+      "min": 0,
+      "max": 80,
+      "step": 1
     }
-  }
+  ]
 }

@@ -1,9 +1,5 @@
 node_modules/
-!dist/
-dist/*
-!dist/index.html
-!dist/assets/
-!dist/assets/**
+dist/
 .DS_Store
 *.log
 .env

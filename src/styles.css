@@ -1,0 +1,46 @@
+:root,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.date-display {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: var(--date-align);
+  justify-content: center;
+  gap: clamp(2px, 2cqh, 12px);
+  padding: var(--date-padding);
+  overflow: hidden;
+  border-radius: var(--date-radius);
+  background: var(--date-background);
+  backdrop-filter: blur(var(--date-blur));
+}
+
+.weekday,
+.date,
+.time {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+.weekday {
+  line-height: 1.12;
+}
+
+.time {
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
