@@ -1,24 +1,36 @@
-# Date Display Add-on for MyWallpaper
+# Date Display
 
-A customizable date display add-on for [MyWallpaper](https://mywallpaper.app).
+Date Display is a lightweight MyWallpaper Canvas add-on for showing the
+weekday, date, and time. Its settings are grouped into Content, Language,
+Typography, and Appearance so the editor stays compact while still exposing
+the complete design surface.
 
-## Features
-
-- **Multi-language support** - 11 preset languages via `Intl.DateTimeFormat` or custom day/month names
-- **Customizable fonts** - Preset Google Fonts or any CSS font URL loaded natively in Canvas OS
-- **Flexible date formats** - Long, short, numeric, ISO, and more
-- **Full style control** - Font size, weight, color, opacity, letter spacing, text shadow
+It uses the browser's `Intl.DateTimeFormat` implementation for locale-aware
+formatting. Authors can override weekday and month names and can load an
+optional font stylesheet or font file through a normal credential-free URL.
+The add-on has no native component.
 
 ## Development
 
-Built as a `trusted-native-canvas-v1` Vite app.
+Use Node.js 24 and the pnpm version pinned by `packageManager`:
 
-```bash
-pnpm install
-pnpm run dev
-pnpm run build
+```powershell
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm build
 ```
+
+Run `mywallpaper dev` for the complete in-application preview. The CLI starts a
+loopback development server and MyWallpaper Desktop renders the same exported
+`mount` entry used by published releases.
+
+## Publishing
+
+Publishing is performed only by MyWallpaper's immutable OIDC admission
+workflow. A version tag is created only after the pull request is merged and
+all quality checks are green. Promotion and recommendation remain separate
+owner actions after ingestion and desktop validation.
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
