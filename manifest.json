@@ -2,9 +2,9 @@
   "runtime": "canvas-v1",
   "name": "Date Display",
   "description": "Displays a localized date, weekday and optional clock with flexible typography and appearance controls.",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "entry": "dist/index.html",
-  "thumbnail": "preview.png",
+  "thumbnail": "assets/thumbnail.png",
   "deviceSettingsVersion": "1",
   "ui": {
     "pointerEvents": "none"
