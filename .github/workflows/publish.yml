@@ -19,6 +19,6 @@ jobs:
       attestations: write
       contents: write
       id-token: write
-    uses: MyWallpapers/native-addon-toolchain/.github/workflows/native-addon-build.yml@6016d530eeddac9eddf8ec17a27f2a1727e847c8
+    uses: MyWallpapers/native-addon-toolchain/.github/workflows/native-addon-build.yml@d25e283c8bffc524fcb7334b59a402b2eda95891
     with:
       channel: development
