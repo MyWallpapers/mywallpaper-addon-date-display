@@ -2,7 +2,7 @@
   "runtime": "canvas-v1",
   "name": "Date Display",
   "description": "Displays a localized date, weekday and optional clock with flexible typography and appearance controls.",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "entry": "dist/assets/addon.js",
   "thumbnail": "assets/thumbnail.png",
   "deviceSettingsVersion": "1",
@@ -38,13 +38,31 @@
       "parent": "content",
       "scope": "layer",
       "default": "long",
-      "showIf": { "setting": "showDate", "equals": true },
+      "showIf": {
+        "setting": "showDate",
+        "equals": true
+      },
       "options": [
-        { "label": "Full", "value": "full" },
-        { "label": "Long", "value": "long" },
-        { "label": "Medium", "value": "medium" },
-        { "label": "Short", "value": "short" },
-        { "label": "ISO (2026-08-03)", "value": "iso" }
+        {
+          "label": "Full",
+          "value": "full"
+        },
+        {
+          "label": "Long",
+          "value": "long"
+        },
+        {
+          "label": "Medium",
+          "value": "medium"
+        },
+        {
+          "label": "Short",
+          "value": "short"
+        },
+        {
+          "label": "ISO (2026-08-03)",
+          "value": "iso"
+        }
       ]
     },
     {
@@ -62,10 +80,19 @@
       "parent": "content",
       "scope": "layer",
       "default": "24h",
-      "showIf": { "setting": "showTime", "equals": true },
+      "showIf": {
+        "setting": "showTime",
+        "equals": true
+      },
       "options": [
-        { "label": "24 hour", "value": "24h" },
-        { "label": "12 hour", "value": "12h" }
+        {
+          "label": "24 hour",
+          "value": "24h"
+        },
+        {
+          "label": "12 hour",
+          "value": "12h"
+        }
       ]
     },
     {
@@ -75,7 +102,10 @@
       "parent": "content",
       "scope": "layer",
       "default": false,
-      "showIf": { "setting": "showTime", "equals": true }
+      "showIf": {
+        "setting": "showTime",
+        "equals": true
+      }
     },
     {
       "id": "language",
@@ -91,18 +121,54 @@
       "scope": "layer",
       "default": "system",
       "options": [
-        { "label": "System", "value": "system" },
-        { "label": "English", "value": "en-US" },
-        { "label": "Français", "value": "fr-FR" },
-        { "label": "Deutsch", "value": "de-DE" },
-        { "label": "Español", "value": "es-ES" },
-        { "label": "Italiano", "value": "it-IT" },
-        { "label": "Português", "value": "pt-BR" },
-        { "label": "日本語", "value": "ja-JP" },
-        { "label": "한국어", "value": "ko-KR" },
-        { "label": "中文", "value": "zh-CN" },
-        { "label": "Русский", "value": "ru-RU" },
-        { "label": "العربية", "value": "ar" }
+        {
+          "label": "System",
+          "value": "system"
+        },
+        {
+          "label": "English",
+          "value": "en-US"
+        },
+        {
+          "label": "Français",
+          "value": "fr-FR"
+        },
+        {
+          "label": "Deutsch",
+          "value": "de-DE"
+        },
+        {
+          "label": "Español",
+          "value": "es-ES"
+        },
+        {
+          "label": "Italiano",
+          "value": "it-IT"
+        },
+        {
+          "label": "Português",
+          "value": "pt-BR"
+        },
+        {
+          "label": "日本語",
+          "value": "ja-JP"
+        },
+        {
+          "label": "한국어",
+          "value": "ko-KR"
+        },
+        {
+          "label": "中文",
+          "value": "zh-CN"
+        },
+        {
+          "label": "Русский",
+          "value": "ru-RU"
+        },
+        {
+          "label": "العربية",
+          "value": "ar"
+        }
       ]
     },
     {
@@ -129,7 +195,10 @@
       "parent": "customNames",
       "scope": "layer",
       "default": "Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday",
-      "showIf": { "setting": "useCustomNames", "equals": true }
+      "showIf": {
+        "setting": "useCustomNames",
+        "equals": true
+      }
     },
     {
       "id": "customMonths",
@@ -139,7 +208,10 @@
       "parent": "customNames",
       "scope": "layer",
       "default": "January,February,March,April,May,June,July,August,September,October,November,December",
-      "showIf": { "setting": "useCustomNames", "equals": true }
+      "showIf": {
+        "setting": "useCustomNames",
+        "equals": true
+      }
     },
     {
       "id": "typography",
@@ -154,8 +226,14 @@
       "scope": "layer",
       "default": "system",
       "options": [
-        { "label": "Installed font", "value": "system" },
-        { "label": "Remote font", "value": "remote" }
+        {
+          "label": "Installed font",
+          "value": "system"
+        },
+        {
+          "label": "Remote font",
+          "value": "remote"
+        }
       ]
     },
     {
@@ -175,7 +253,10 @@
       "scope": "layer",
       "default": "",
       "placeholder": "https://fonts.googleapis.com/css2?family=Inter",
-      "showIf": { "setting": "fontSource", "equals": "remote" }
+      "showIf": {
+        "setting": "fontSource",
+        "equals": "remote"
+      }
     },
     {
       "id": "fontWeight",
@@ -185,12 +266,30 @@
       "scope": "layer",
       "default": "600",
       "options": [
-        { "label": "Light", "value": "300" },
-        { "label": "Regular", "value": "400" },
-        { "label": "Medium", "value": "500" },
-        { "label": "Semibold", "value": "600" },
-        { "label": "Bold", "value": "700" },
-        { "label": "Black", "value": "900" }
+        {
+          "label": "Light",
+          "value": "300"
+        },
+        {
+          "label": "Regular",
+          "value": "400"
+        },
+        {
+          "label": "Medium",
+          "value": "500"
+        },
+        {
+          "label": "Semibold",
+          "value": "600"
+        },
+        {
+          "label": "Bold",
+          "value": "700"
+        },
+        {
+          "label": "Black",
+          "value": "900"
+        }
       ]
     },
     {
@@ -201,9 +300,18 @@
       "scope": "layer",
       "default": "center",
       "options": [
-        { "label": "Left", "value": "left" },
-        { "label": "Center", "value": "center" },
-        { "label": "Right", "value": "right" }
+        {
+          "label": "Left",
+          "value": "left"
+        },
+        {
+          "label": "Center",
+          "value": "center"
+        },
+        {
+          "label": "Right",
+          "value": "right"
+        }
       ]
     },
     {
@@ -214,10 +322,22 @@
       "scope": "layer",
       "default": "none",
       "options": [
-        { "label": "Original", "value": "none" },
-        { "label": "Uppercase", "value": "uppercase" },
-        { "label": "Lowercase", "value": "lowercase" },
-        { "label": "Capitalize", "value": "capitalize" }
+        {
+          "label": "Original",
+          "value": "none"
+        },
+        {
+          "label": "Uppercase",
+          "value": "uppercase"
+        },
+        {
+          "label": "Lowercase",
+          "value": "lowercase"
+        },
+        {
+          "label": "Capitalize",
+          "value": "capitalize"
+        }
       ]
     },
     {
@@ -252,7 +372,10 @@
       "min": 8,
       "max": 200,
       "step": 1,
-      "showIf": { "setting": "showTime", "equals": true }
+      "showIf": {
+        "setting": "showTime",
+        "equals": true
+      }
     },
     {
       "id": "letterSpacing",
