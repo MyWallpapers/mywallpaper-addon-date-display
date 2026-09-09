@@ -1,6 +1,6 @@
 {
   "name": "mywallpaper-addon-date-display",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.12.0",
