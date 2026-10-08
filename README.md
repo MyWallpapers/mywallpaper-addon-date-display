@@ -1,14 +1,21 @@
 # Date Display
 
-Date Display is a lightweight MyWallpaper Canvas add-on for showing the
-weekday, date, and time. Its settings are grouped into Content, Language,
-Typography, and Appearance so the editor stays compact while still exposing
-the complete design surface.
+Date Display is a minimal MyWallpaper Canvas add-on for a localized weekday, date, and optional clock. Dates and time use the desktop's local time zone for every locale; System follows the browser's language. Its settings keep the existing Content, Language, Typography, and Appearance groups.
 
-It uses the browser's `Intl.DateTimeFormat` implementation for locale-aware
-formatting. Authors can override weekday and month names and can load an
-optional font stylesheet or font file through a normal credential-free URL.
-The add-on has no native component.
+It uses cached `Intl.DateTimeFormat` instances for locale-aware formatting and updates on the next second, minute, or local midnight as needed. The timer resynchronizes after the Canvas becomes visible again. Weekday and month names can be overridden. Date formats include full, long, medium, short, and ISO.
+
+On hosts that provide the font resource picker, use it for a new remote font.
+It stores a direct font-file URL, which the add-on resolves through `layer.resources.resolve()`
+when available and falls back to the saved URL on older hosts. The manual font
+URL control remains available in its collapsed compatibility section for
+existing stylesheet and direct-file URLs. Stylesheet URLs remain a legacy
+fallback; new selections do not load a provider catalog or create an add-on
+font cache. Installed fonts remain the default.
+
+Version 4 keeps the existing settings IDs, value types, and current values.
+`fontResource` is an additional optional resource setting; the existing
+`fontUrl` string is retained for earlier profiles. The add-on has no native
+component.
 
 ## Development
 
