@@ -16,8 +16,62 @@ export type RuntimeInstance = {
 export type ResourceValue = {
 	"kind": "live";
 	url: string;
+} | {
+	"kind": "cached-public";
+	url: string;
 };
 export type AddonValues = Record<string, JsonValue>;
+interface ServiceCaller {
+	/** Host-stamped identity. Never taken from the calling add-on's payload. */
+	nodeId: string;
+	addonId: string;
+	addonReleaseId?: string;
+	generation: string;
+}
+interface ServiceCallContext {
+	caller: ServiceCaller;
+	signal: AbortSignal;
+}
+interface ServiceCallOptions {
+	signal?: AbortSignal;
+	timeoutMs?: number;
+}
+interface ServiceEvent {
+	kind: "snapshot" | "state" | "event";
+	sequence: number;
+	value: JsonValue;
+}
+export interface ServiceImplementation {
+	methods?: Record<string, (input: JsonValue, context: ServiceCallContext) => JsonValue | Promise<JsonValue>>;
+	streams?: Record<string, (input: JsonValue, context: ServiceCallContext) => AsyncIterable<ArrayBuffer>>;
+}
+interface ServicePublisher {
+	/** Replaces a retained snapshot and notifies subscribers atomically. */
+	publish(topic: string, value: JsonValue): void;
+	emit(topic: string, value: JsonValue): void;
+	dispose(): void;
+}
+export interface ServiceConnection {
+	call(method: string, input?: JsonValue, options?: ServiceCallOptions): Promise<JsonValue>;
+	/** The first retained value and subsequent updates share one ordered port. */
+	subscribe(topic: string, listener: (event: ServiceEvent) => void, onError?: (error: Error) => void): () => void;
+	stream(name: string, input?: JsonValue, options?: ServiceCallOptions): AsyncIterable<ArrayBuffer>;
+	close(): void;
+}
+export interface AddonServiceApi {
+	connect(alias: string, options?: ServiceCallOptions): Promise<ServiceConnection>;
+	provide(name: string, implementation: ServiceImplementation): ServicePublisher;
+}
+export interface ServiceStartContext {
+	services: AddonServiceApi;
+	/** The service entry owns device-scoped values; visual layer values remain local. */
+	settings: {
+		get(): Record<string, JsonValue>;
+		subscribe(listener: (values: Record<string, JsonValue>) => void): () => void;
+	};
+	native: CanvasLayerApi["native"];
+	signal: AbortSignal;
+}
 export type CanvasApiListener<TValue = unknown> = (value: TValue) => void;
 export type NativeConnectionState = "open" | "reconnecting" | "failed" | "closed";
 export interface NativeConnection {
@@ -65,6 +119,43 @@ export interface LayerSettingsApi {
 	set(partial: AddonValues): Promise<void>;
 	subscribe(listener: CanvasApiListener<AddonValues>): () => void;
 }
+/** Geometry for one add-on-owned item, relative to its layer root (0–100%). */
+export interface CanvasEditorTargetGeometry {
+	xPercent: number;
+	yPercent: number;
+	widthPercent: number;
+	heightPercent: number;
+	rotation: number;
+}
+/** One stable item the host may expose in its layer editor. */
+export interface CanvasEditorTarget {
+	id: string;
+	label: string;
+	geometry: CanvasEditorTargetGeometry;
+	canMove: boolean;
+	canResize: boolean;
+	canRotate: boolean;
+}
+export type CanvasEditorTargetTransformPhase = "preview" | "commit" | "cancel";
+export type CanvasEditorTargetTransformAction = "move" | "resize" | "rotate";
+export interface CanvasEditorTargetTransformEvent {
+	targetId: string;
+	action: CanvasEditorTargetTransformAction;
+	phase: CanvasEditorTargetTransformPhase;
+	geometry: CanvasEditorTargetGeometry;
+	previousGeometry: CanvasEditorTargetGeometry;
+}
+export type CanvasEditorTargetTransformHandler = (event: CanvasEditorTargetTransformEvent) => void | AddonValues;
+/** Optional host handles for an add-on's own children; children remain owned by the add-on. */
+export interface CanvasLayerEditorApi {
+	/**
+	 * Replace this layer's reported targets. The returned cleanup unregisters this registration.
+	 * Transform callbacks are synchronous: keep preview/cancel visual and on commit return one
+	 * layer-settings patch to persist the gesture through MyWallpaper's validated settings history;
+	 * do not call `layer.settings.set` from the callback.
+	 */
+	registerTargets(targets: readonly CanvasEditorTarget[], onTransform: CanvasEditorTargetTransformHandler): () => void;
+}
 export interface CanvasActionEvent {
 	key: string;
 }
@@ -75,6 +166,8 @@ export interface LayerLifecycleApi {
 	onDispose(listener: () => void): () => void;
 }
 export interface LayerResourcesApi {
+	/** Resolves live URLs unchanged; opt-in cached-public assets may resolve to a
+	 * local data URL. Only declared settings are authorized; failure returns the source. */
 	resolve(value: ResourceValue): Promise<string>;
 }
 export interface CanvasRuntimeApi {
@@ -83,7 +176,7 @@ export interface CanvasRuntimeApi {
 	readonly instance: RuntimeInstance;
 }
 export interface CanvasLayerApi {
-	/** Stable container owned by this layer instance inside the shared Canvas document. */
+	/** Stable container owned by this layer instance in the common Canvas document. */
 	readonly root: HTMLElement;
 	readonly layerId: string;
 	readonly settings: LayerSettingsApi;
@@ -94,6 +187,8 @@ export interface CanvasLayerApi {
 	readonly bus: CanvasBus;
 	/** Native attachment owned by this exact layer; it cannot address another add-on. */
 	readonly native: LayerNativeApi;
+	/** Optional editor handles for add-on-owned child items. */
+	readonly editor?: CanvasLayerEditorApi;
 }
 /** Explicit capability object passed only to an add-on's exported `mount`. */
 export interface CanvasAddonMountContext {
@@ -101,6 +196,7 @@ export interface CanvasAddonMountContext {
 	readonly layer: CanvasLayerApi;
 	/** Exact alias of `layer.bus`, provided for the concise public bus API. */
 	readonly bus: CanvasBus;
+	readonly services: AddonServiceApi;
 }
 export type CanvasAddonCleanup = () => void;
 export type CanvasAddonMount = (context: CanvasAddonMountContext) => void | CanvasAddonCleanup;

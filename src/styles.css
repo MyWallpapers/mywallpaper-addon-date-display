@@ -1,46 +1,92 @@
-:root,
-body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
-  background: transparent;
-}
-
-* {
+.mw-date-display,
+.mw-date-display * {
   box-sizing: border-box;
 }
 
-.date-display {
+.mw-date-display {
+  display: flex;
   width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: var(--date-align);
-  justify-content: center;
-  gap: clamp(2px, 2cqh, 12px);
-  padding: var(--date-padding);
-  overflow: hidden;
-  border-radius: var(--date-radius);
-  background: var(--date-background);
-  backdrop-filter: blur(var(--date-blur));
-}
-
-.weekday,
-.date,
-.time {
-  width: 100%;
   min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  align-items: var(--mw-dd-align, center);
+  justify-content: center;
   overflow: hidden;
-  line-height: 1.04;
-  text-wrap: balance;
+  padding: var(--mw-dd-padding, 20px);
+  border-radius: var(--mw-dd-radius, 18px);
+  background: var(--mw-dd-background, transparent);
+  backdrop-filter: blur(var(--mw-dd-blur, 0px));
+  -webkit-backdrop-filter: blur(var(--mw-dd-blur, 0px));
+  color: var(--mw-dd-primary, #fff);
+  font-family: var(--mw-dd-font-family, "Segoe UI", system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: var(--mw-dd-font-weight, 600);
+  text-align: var(--mw-dd-text-align, center);
+  text-transform: var(--mw-dd-transform, none);
 }
 
-.weekday {
-  line-height: 1.12;
+.mw-date-display__content {
+  display: flex;
+  width: max-content;
+  max-width: none;
+  min-width: max-content;
+  flex: none;
+  flex-direction: column;
+  align-items: var(--mw-dd-content-align, center);
+  gap: clamp(4px, 1.2em, 16px);
+  transform: scale(var(--mw-dd-scale, 1));
+  transform-origin: var(--mw-dd-origin, center center);
 }
 
-.time {
+.mw-date-display__weekday,
+.mw-date-display__date,
+.mw-date-display__time {
   display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  text-shadow: var(--mw-dd-shadow, none);
+}
+
+.mw-date-display__weekday {
+  color: var(--mw-dd-secondary, #b9c3d6);
+  font-size: var(--mw-dd-day-size, 42px);
+  font-weight: var(--mw-dd-font-weight, 600);
+  letter-spacing: var(--mw-dd-letter-spacing, 1px);
+  line-height: 1.08;
+}
+
+.mw-date-display__date {
+  color: var(--mw-dd-primary, #fff);
+  font-size: var(--mw-dd-date-size, 64px);
+  font-weight: var(--mw-dd-font-weight, 600);
+  letter-spacing: var(--mw-dd-letter-spacing, 1px);
+  line-height: 1.06;
+}
+
+.mw-date-display__time {
+  color: var(--mw-dd-secondary, #b9c3d6);
+  font-size: var(--mw-dd-time-size, 52px);
+  font-weight: var(--mw-dd-font-weight, 600);
+  letter-spacing: var(--mw-dd-letter-spacing, 1px);
+  line-height: 1.08;
   font-variant-numeric: tabular-nums;
+}
+
+.mw-date-display__weekday,
+.mw-date-display__date,
+.mw-date-display__time {
+  width: max-content;
+  max-width: none;
+  flex: none;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  text-wrap: nowrap;
+}
+
+.mw-date-display [hidden] {
+  display: none;
 }

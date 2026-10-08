@@ -1,8 +1,8 @@
 {
   "runtime": "canvas-v1",
   "name": "Date Display",
-  "description": "Displays a localized date, weekday and optional clock with flexible typography and appearance controls.",
-  "version": "3.0.4",
+  "description": "A clean, localized date, weekday and optional clock for your wallpaper.",
+  "version": "4.0.0",
   "entry": "dist/assets/addon.js",
   "thumbnail": "assets/thumbnail.png",
   "deviceSettingsVersion": "1",
@@ -246,10 +246,31 @@
       "default": "Segoe UI"
     },
     {
+      "id": "fontResource",
+      "type": "resource",
+      "label": "Choose a font file",
+      "description": "Search for a font or enter a direct font file URL. Leave empty to use an installed font or the saved manual URL below.",
+      "parent": "typography",
+      "scope": "layer",
+      "showIf": {
+        "setting": "fontSource",
+        "equals": "remote"
+      }
+    },
+    {
+      "id": "legacyFontUrl",
+      "type": "section",
+      "label": "Manual font URL (earlier versions)",
+      "description": "Keeps saved stylesheet URLs working. New font picks use the resource selector above.",
+      "parent": "typography",
+      "defaultCollapsed": true
+    },
+    {
       "id": "fontUrl",
       "type": "string",
-      "label": "Font stylesheet or file URL",
-      "parent": "typography",
+      "label": "Manual font URL",
+      "description": "Supports saved stylesheet URLs and direct font file URLs.",
+      "parent": "legacyFontUrl",
       "scope": "layer",
       "default": "",
       "placeholder": "https://fonts.googleapis.com/css2?family=Inter",
