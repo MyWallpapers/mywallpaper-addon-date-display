@@ -14,7 +14,10 @@ const fields: Record<PartId, string[]> = {
   time: ['showTime', 'timeFormat', 'showSeconds', 'timeFontSize'],
 }
 const definitions = manifest.settings as SettingDefinition[]
-const rootDefinitions = definitions.filter(field => field.id !== 'elementLayout' && field.id !== 'savedLayout')
+// Resource controls use the host's declared-root resource picker, not this
+// temporary inspector contract.
+const rootDefinitions = definitions.filter(field => field.id !== 'elementLayout'
+  && field.id !== 'savedLayout' && field.type !== 'resource')
 const defaultValues = Object.fromEntries(definitions.filter(field => field.default !== undefined)
   .map(field => [field.id, field.default])) as AddonValues
 const bound = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
@@ -117,7 +120,10 @@ export function createDateEditor(
   const inspector: CanvasEditorInspectorAdapter = {
     get(targetId) {
       const values = { ...defaultValues, ...layer.settings.get() }
-      if (targetId === null) return { settings: [...rootDefinitions, reset], values }
+      const pickValues = (settings: readonly SettingDefinition[]) => Object.fromEntries(settings
+        .filter(field => field.type !== 'section' && field.type !== 'button' && values[field.id] !== undefined)
+        .map(field => [field.id, values[field.id]!])) as AddonValues
+      if (targetId === null) return { settings: [...rootDefinitions, reset], values: pickValues(rootDefinitions) }
       if (!ids.includes(targetId as PartId)) throw new Error('This element is no longer available.')
       const id = targetId as PartId, frame = frames()[id]
       if (!frame) throw new Error('This element is hidden.')
@@ -126,13 +132,15 @@ export function createDateEditor(
           ...definitions.filter(field => fields[id].includes(field.id)).map(({ parent: _parent, ...field }) => field),
           { id: 'geometry', type: 'section', label: 'Position and size', defaultCollapsed: true },
           { id: 'position', type: 'vector2', label: 'Position (%)', parent: 'geometry',
-            axisLabels: ['X', 'Y'], min: 0, max: 100, step: .1 },
+            axisLabels: ['X', 'Y'], default: { x: 0, y: 0 } },
           { id: 'size', type: 'vector2', label: 'Size (%)', parent: 'geometry',
-            axisLabels: ['Width', 'Height'], min: .1, max: 100, step: .1 },
-          { id: 'rotation', type: 'number', label: 'Rotation (°)', parent: 'geometry', min: -180, max: 180, step: 1 },
+            axisLabels: ['Width', 'Height'], default: { x: 100, y: 100 } },
+          { id: 'rotation', type: 'number', label: 'Rotation (°)', parent: 'geometry',
+            min: -180, max: 180, default: 0 },
           reset,
         ],
-        values: { ...values, position: { x: frame.xPercent, y: frame.yPercent },
+        values: { ...pickValues(definitions.filter(field => fields[id].includes(field.id))),
+          position: { x: frame.xPercent, y: frame.yPercent },
           size: { x: frame.widthPercent, y: frame.heightPercent }, rotation: frame.rotation },
       }
     },

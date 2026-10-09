@@ -2,7 +2,7 @@
   "runtime": "canvas-v1",
   "name": "Date Display",
   "description": "A clean, localized date, weekday and optional clock for your wallpaper.",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "entry": "dist/assets/addon.js",
   "thumbnail": "assets/thumbnail.png",
   "deviceSettingsVersion": "1",
