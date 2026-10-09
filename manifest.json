@@ -2,7 +2,7 @@
   "runtime": "canvas-v1",
   "name": "Date Display",
   "description": "A clean, localized date, weekday and optional clock for your wallpaper.",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "entry": "dist/assets/addon.js",
   "thumbnail": "assets/thumbnail.png",
   "deviceSettingsVersion": "1",
@@ -501,6 +501,21 @@
       "min": 0,
       "max": 80,
       "step": 1
+    },
+    {
+      "id": "savedLayout",
+      "type": "section",
+      "label": "Saved arrangement",
+      "defaultCollapsed": true
+    },
+    {
+      "id": "elementLayout",
+      "type": "textarea",
+      "label": "Layout data",
+      "description": "Managed by the native element editor. Empty data restores automatic arrangement.",
+      "parent": "savedLayout",
+      "scope": "layer",
+      "default": "{}"
     }
   ]
 }

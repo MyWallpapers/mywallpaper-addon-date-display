@@ -17,6 +17,28 @@ Version 4 keeps the existing settings IDs, value types, and current values.
 `fontUrl` string is retained for earlier profiles. The add-on has no native
 component.
 
+## Independent elements (4.1)
+
+On hosts with the native child editor, the visible weekday, date and time have
+their own move, resize and rotate handles. Select a child to adjust its existing
+content/format settings, text size and geometry in MyWallpaper's sidebar.
+The optional clock appears in this list after enabling Time.
+
+The original automatic arrangement remains the default. The first geometry edit
+captures the visible arrangement before moving its target, leaving the other
+elements in place. Saved frames use percentages of the add-on's own canvas;
+each frame fits its text without enlarging it beyond the chosen font size.
+Use **Restore automatic arrangement** in the native inspector to restore the
+default grouping. Gesture previews and cancellation stay visual; commits return
+one declared layer setting to the host for saving and undo/redo. There is no
+embedded editor, separate storage, polling loop, or new runtime dependency.
+
+`elementLayout` is an additive portable setting. On older hosts, saved geometry
+still renders, while the existing ordinary settings stay available. The collapsed
+Saved arrangement section is a compatibility fallback for its stored data;
+the current native inspector uses handles and fields instead. Earlier releases
+and existing pinned instances remain unchanged until explicitly updated.
+
 ## Development
 
 Use Node.js 24 and the pnpm version pinned by `packageManager`:
@@ -36,7 +58,7 @@ loopback development server and MyWallpaper Desktop renders the same exported
 Merge the source and matching manifest/package version into the reviewed default
 branch, wait for quality checks, then push a new immutable `v<version>` tag.
 Open this add-on's management page in MyWallpaper and select that tag to request
-publication with an active lifetime entitlement.
+publication with an authenticated creator account and accepted creator terms.
 
 MyWallpaper resolves the exact public repository and commit, dispatches its
 pinned central workflow, rebuilds and verifies the artifacts, and publishes the
