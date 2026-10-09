@@ -5,17 +5,30 @@ Date Display is a minimal MyWallpaper Canvas add-on for a localized weekday, dat
 It uses cached `Intl.DateTimeFormat` instances for locale-aware formatting and updates on the next second, minute, or local midnight as needed. The timer resynchronizes after the Canvas becomes visible again. Weekday and month names can be overridden. Date formats include full, long, medium, short, and ISO.
 
 On hosts that provide the font resource picker, use it for a new remote font.
-It stores a direct font-file URL, which the add-on resolves through `layer.resources.resolve()`
-when available and falls back to the saved URL on older hosts. The manual font
-URL control remains available in its collapsed compatibility section for
-existing stylesheet and direct-file URLs. Stylesheet URLs remain a legacy
-fallback; new selections do not load a provider catalog or create an add-on
-font cache. Installed fonts remain the default.
+It accepts direct font files and font stylesheets such as
+`https://fonts.cdnfonts.com/css/anurati`. A stylesheet's `@font-face` declarations
+provide the native editor's family, weight and style choices; continuous variable
+weights get a slider. Text size remains freely adjustable. Direct binary files
+keep manual family and variant descriptors.
+
+Stylesheets require browser-readable CORS responses and are read live with bounded
+imports, bytes and loading time. Only their font declarations are used; their
+other CSS rules are not inserted into the common Canvas document. Direct font
+resources continue through `layer.resources.resolve()` when available. No add-on
+font cache or server proxy is added. The fallback `fontUrl` is retained for saved
+profiles without a selected resource. Installed fonts remain the default.
+
+The previous font remains visible during replacement and on failure. A failed
+load exposes **Retry font** in the native inspector. New requests supersede older
+ones; removing the add-on releases its registered font faces.
 
 Version 4 keeps the existing settings IDs, value types, and current values.
 `fontResource` is an additional optional resource setting; the existing
 `fontUrl` string is retained for earlier profiles. The add-on has no native
 component.
+Version 4.1.2 adds `fontStyle` and `fontVariantWeight` without changing earlier
+setting types. The latter stores weights outside the original weight selector;
+native controls map their changes back to these declared layer settings.
 
 ## Independent elements (4.1)
 

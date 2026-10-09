@@ -23,6 +23,7 @@
   font-family: var(--mw-dd-font-family, "Segoe UI", system-ui, sans-serif);
   font-size: 14px;
   font-weight: var(--mw-dd-font-weight, 600);
+  font-style: var(--mw-dd-font-style, normal);
   text-align: var(--mw-dd-text-align, center);
   text-transform: var(--mw-dd-transform, none);
 }

@@ -1,6 +1,6 @@
 import type {
   AddonValues, CanvasEditorInspectorAdapter, CanvasEditorTargetGeometry, CanvasLayerApi,
-  SettingDefinition,
+  SettingDefinition, CanvasEditorInspector,
 } from '../generated/mywallpaper-runtime'
 import manifest from '../manifest.json'
 
@@ -17,7 +17,7 @@ const definitions = manifest.settings as SettingDefinition[]
 // Resource controls use the host's declared-root resource picker, not this
 // temporary inspector contract.
 const rootDefinitions = definitions.filter(field => field.id !== 'elementLayout'
-  && field.id !== 'savedLayout' && field.type !== 'resource')
+  && field.id !== 'savedLayout' && field.id !== 'fontVariantWeight' && field.type !== 'resource')
 const defaultValues = Object.fromEntries(definitions.filter(field => field.default !== undefined)
   .map(field => [field.id, field.default])) as AddonValues
 const bound = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
@@ -57,6 +57,7 @@ function readLayout(value: unknown): Layout {
 export function createDateEditor(
   layer: CanvasLayerApi, widget: HTMLElement, content: HTMLElement,
   parts: Record<PartId, HTMLElement>, enabled: boolean,
+  fontInspector?: { get(settings: SettingDefinition[], values: AddonValues): CanvasEditorInspector; retry(): void },
 ) {
   let automatic: Layout = {}
   let preview: Layout | undefined
@@ -66,6 +67,7 @@ export function createDateEditor(
   let fingerprint = ''
   let stopTargets: (() => void) | undefined
   let invalidateAutomatic = true
+  let retryTimer: number | undefined
 
   const visibleIds = () => ids.filter(id => !parts[id].hidden)
   const saved = () => readLayout(layer.settings.get().elementLayout)
@@ -123,7 +125,11 @@ export function createDateEditor(
       const pickValues = (settings: readonly SettingDefinition[]) => Object.fromEntries(settings
         .filter(field => field.type !== 'section' && field.type !== 'button' && values[field.id] !== undefined)
         .map(field => [field.id, values[field.id]!])) as AddonValues
-      if (targetId === null) return { settings: [...rootDefinitions, reset], values: pickValues(rootDefinitions) }
+      if (targetId === null) {
+        const result = fontInspector?.get(rootDefinitions, pickValues(rootDefinitions))
+          ?? { settings: rootDefinitions, values: pickValues(rootDefinitions) }
+        return { settings: [...result.settings, reset], values: result.values }
+      }
       if (!ids.includes(targetId as PartId)) throw new Error('This element is no longer available.')
       const id = targetId as PartId, frame = frames()[id]
       if (!frame) throw new Error('This element is hidden.')
@@ -149,7 +155,15 @@ export function createDateEditor(
         const patch: AddonValues = {}
         for (const field of rootDefinitions) {
           if (field.type !== 'section' && field.type !== 'button' && values[field.id] !== undefined) {
-            patch[field.id] = values[field.id]!
+            if (field.id === 'fontWeight') {
+              const weight = String(values[field.id])
+              // Preserve the earlier select schema and its saved values. Additional
+              // and variable weights use a separate, explicitly declared setting.
+              if (field.options?.some(option => option.value === weight)) {
+                patch.fontWeight = weight
+                patch.fontVariantWeight = ''
+              } else patch.fontVariantWeight = weight
+            } else patch[field.id] = values[field.id]!
           }
         }
         return { layer: patch }
@@ -170,8 +184,16 @@ export function createDateEditor(
       }
       return { layer: patch }
     },
-    action(_targetId, actionId) {
+    action(targetId, actionId) {
       if (actionId === 'resetLayout') return { layer: { elementLayout: '{}' } }
+      if (targetId === null && actionId === 'retryFont' && fontInspector) {
+        if (retryTimer !== undefined) window.clearTimeout(retryTimer)
+        // Finish the host action before publishing refreshed inspector metadata.
+        retryTimer = window.setTimeout(() => {
+          retryTimer = undefined
+          if (!disposed) fontInspector.retry()
+        }, 0)
+      }
     },
   }
 
@@ -187,7 +209,9 @@ export function createDateEditor(
     const targets = visibleIds().flatMap(id => layout[id] ? [{
       id, label: labels[id], geometry: layout[id]!, canMove: true, canResize: true, canRotate: true,
     }] : [])
-    const nextFingerprint = JSON.stringify(targets)
+    const fontFields = fontInspector?.get(rootDefinitions, { ...defaultValues, ...layer.settings.get() }).settings
+      .map(({ default: _default, ...field }) => field)
+    const nextFingerprint = JSON.stringify([targets, fontFields])
     if (fingerprint === nextFingerprint && stopTargets) return
     fingerprint = nextFingerprint
     const currentGeneration = ++generation
@@ -215,6 +239,9 @@ export function createDateEditor(
   return {
     refresh,
     invalidate() { preview = undefined; invalidateAutomatic = true },
-    dispose() { disposed = true; generation++; stopTargets?.() },
+    dispose() {
+      disposed = true; generation++; stopTargets?.()
+      if (retryTimer !== undefined) window.clearTimeout(retryTimer)
+    },
   }
 }
