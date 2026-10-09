@@ -1,5 +1,6 @@
 import type { AddonValues, CanvasAddonMountContext, ResourceValue } from '../generated/mywallpaper-runtime'
 import './styles.css'
+import { createDateEditor } from './editor'
 
 type DateFormat = 'full' | 'long' | 'medium' | 'short' | 'iso'
 type TimeFormat = '12h' | '24h'
@@ -89,7 +90,7 @@ const fontWeights = ['300', '400', '500', '600', '700', '900'] as const
 const dateFormats = ['full', 'long', 'medium', 'short', 'iso'] as const
 let mountSequence = 0
 
-export function mount({ layer }: CanvasAddonMountContext): () => void {
+export function mount({ layer, runtime }: CanvasAddonMountContext): () => void {
   const widget = document.createElement('div')
   widget.className = 'mw-date-display'
   const weekday = document.createElement('div')
@@ -100,9 +101,16 @@ export function mount({ layer }: CanvasAddonMountContext): () => void {
   time.className = 'mw-date-display__time'
   const content = document.createElement('div')
   content.className = 'mw-date-display__content'
+  const weekdayText = document.createElement('span')
+  const dateText = document.createElement('span')
+  const timeText = document.createElement('span')
+  weekday.append(weekdayText)
+  date.append(dateText)
+  time.append(timeText)
   content.append(weekday, date, time)
   widget.append(content)
   layer.root.replaceChildren(widget)
+  const editor = createDateEditor(layer, widget, content, { weekday, date, time }, runtime.mode !== 'thumbnail')
 
   let settings = readSettings(layer.settings.get())
   let formatters = createFormatters(settings)
@@ -111,27 +119,7 @@ export function mount({ layer }: CanvasAddonMountContext): () => void {
   let fontFace: FontFace | null = null
   let fontStylesheet: HTMLLinkElement | null = null
   const instanceFontFamily = `mwdd-${createInstanceToken()}-${(++mountSequence).toString(36)}`
-  let lastFit: readonly number[] | null = null
-
-  const fitContent = (): void => {
-    const padding = clamp(settings.padding, 0, 80)
-    const measurements = [
-      Math.max(0, widget.clientWidth - padding * 2),
-      Math.max(0, widget.clientHeight - padding * 2),
-      content.offsetWidth,
-      content.offsetHeight,
-    ]
-    if (lastFit?.every((value, index) => Math.abs(value - measurements[index]!) < 0.5)) return
-    lastFit = measurements
-
-    const [availableWidth, availableHeight, contentWidth, contentHeight] = measurements
-    const scale = Math.min(
-      1,
-      contentWidth > 0 && availableWidth > 0 ? availableWidth / contentWidth : 1,
-      contentHeight > 0 && availableHeight > 0 ? availableHeight / contentHeight : 1,
-    )
-    content.style.setProperty('--mw-dd-scale', String(scale))
-  }
+  const fitContent = (): void => editor.refresh()
 
   const resizeObserver = typeof ResizeObserver === 'function'
     ? new ResizeObserver(fitContent)
@@ -145,23 +133,23 @@ export function mount({ layer }: CanvasAddonMountContext): () => void {
 
     if (settings.showDayOfWeek) {
       const value = formatWeekday(now, settings, formatters)
-      if (weekday.textContent !== value) {
-        weekday.textContent = value
+      if (weekdayText.textContent !== value) {
+        weekdayText.textContent = value
         textChanged = true
       }
     }
     if (settings.showDate) {
       const value = formatDate(now, settings, formatters)
-      if (date.textContent !== value) {
-        date.textContent = value
+      if (dateText.textContent !== value) {
+        dateText.textContent = value
         textChanged = true
       }
       date.dateTime = localIsoDate(now)
     }
     if (settings.showTime) {
       const value = formatters.time.format(now)
-      if (time.textContent !== value) {
-        time.textContent = value
+      if (timeText.textContent !== value) {
+        timeText.textContent = value
         textChanged = true
       }
       time.dateTime = now.toISOString()
@@ -219,7 +207,7 @@ export function mount({ layer }: CanvasAddonMountContext): () => void {
     widget.style.setProperty('--mw-dd-blur', `${clamp(settings.backgroundBlur, 0, 40)}px`)
     widget.style.setProperty('--mw-dd-radius', `${clamp(settings.cornerRadius, 0, 64)}px`)
     widget.style.setProperty('--mw-dd-padding', `${clamp(settings.padding, 0, 80)}px`)
-    lastFit = null
+    editor.invalidate()
     fitContent()
   }
 
@@ -305,13 +293,16 @@ export function mount({ layer }: CanvasAddonMountContext): () => void {
   const unsubscribe = layer.settings.subscribe(applySettings)
   document.addEventListener('visibilitychange', onResume)
   window.addEventListener('focus', onResume)
+  document.fonts.addEventListener('loadingdone', fitContent)
 
   return () => {
     unsubscribe()
     if (timer !== null) window.clearTimeout(timer)
     resizeObserver?.disconnect()
+    editor.dispose()
     document.removeEventListener('visibilitychange', onResume)
     window.removeEventListener('focus', onResume)
+    document.fonts.removeEventListener('loadingdone', fitContent)
     fontRequest += 1
     if (fontFace) document.fonts.delete(fontFace)
     fontStylesheet?.remove()

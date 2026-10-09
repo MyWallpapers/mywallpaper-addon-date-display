@@ -4,6 +4,7 @@
 }
 
 .mw-date-display {
+  position: relative;
   display: flex;
   width: 100%;
   height: 100%;
@@ -27,6 +28,7 @@
 }
 
 .mw-date-display__content {
+  position: relative;
   display: flex;
   width: max-content;
   max-width: none;
@@ -89,4 +91,33 @@
 
 .mw-date-display [hidden] {
   display: none;
+}
+
+.mw-date-display__content > * > span {
+  display: inline-block;
+}
+
+.mw-date-display--free .mw-date-display__content {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  transform: none;
+}
+
+.mw-date-display--free .mw-date-display__content > :not([hidden]) {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: var(--mw-dd-content-align, center);
+  transform-origin: center;
+}
+
+.mw-date-display--free .mw-date-display__content > * > span {
+  flex: none;
+  white-space: nowrap;
+  transform: scale(var(--mw-dd-part-scale, 1));
+  transform-origin: var(--mw-dd-origin, center center);
 }
