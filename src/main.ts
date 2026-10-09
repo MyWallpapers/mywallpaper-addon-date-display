@@ -1,12 +1,12 @@
 import type { AddonValues, CanvasAddonMountContext, ResourceValue } from '../generated/mywallpaper-runtime'
 import './styles.css'
 import { createDateEditor } from './editor'
+import { createRemoteFonts, fontWeight, inspectFonts, type FontState } from './fonts'
 
 type DateFormat = 'full' | 'long' | 'medium' | 'short' | 'iso'
 type TimeFormat = '12h' | '24h'
 type Alignment = 'left' | 'center' | 'right'
 type TextTransform = 'none' | 'uppercase' | 'lowercase' | 'capitalize'
-type FontWeight = '300' | '400' | '500' | '600' | '700' | '900'
 interface Settings {
   showDayOfWeek: boolean
   showDate: boolean
@@ -22,7 +22,8 @@ interface Settings {
   fontFamily: string
   fontUrl: string
   fontResource: ResourceValue | null
-  fontWeight: FontWeight
+  fontWeight: string
+  fontStyle: 'normal' | 'italic' | 'oblique'
   alignment: Alignment
   textTransform: TextTransform
   dayFontSize: number
@@ -69,6 +70,7 @@ const defaults: Settings = {
   fontUrl: '',
   fontResource: null,
   fontWeight: '600',
+  fontStyle: 'normal',
   alignment: 'center',
   textTransform: 'none',
   dayFontSize: 42,
@@ -86,7 +88,6 @@ const defaults: Settings = {
   padding: 20,
 }
 
-const fontWeights = ['300', '400', '500', '600', '700', '900'] as const
 const dateFormats = ['full', 'long', 'medium', 'short', 'iso'] as const
 let mountSequence = 0
 
@@ -110,15 +111,16 @@ export function mount({ layer, runtime }: CanvasAddonMountContext): () => void {
   content.append(weekday, date, time)
   widget.append(content)
   layer.root.replaceChildren(widget)
-  const editor = createDateEditor(layer, widget, content, { weekday, date, time }, runtime.mode !== 'thumbnail')
+  let fontState: FontState = { status: 'idle' }
+  const editor = createDateEditor(layer, widget, content, { weekday, date, time }, runtime.mode !== 'thumbnail', {
+    get: (definitions, values) => inspectFonts(definitions,
+      { ...values, fontWeight: readSettings(layer.settings.get()).fontWeight }, fontState),
+    retry: () => fonts.retry(),
+  })
 
   let settings = readSettings(layer.settings.get())
   let formatters = createFormatters(settings)
   let timer: number | null = null
-  let fontRequest = 0
-  let fontFace: FontFace | null = null
-  let fontStylesheet: HTMLLinkElement | null = null
-  const instanceFontFamily = `mwdd-${createInstanceToken()}-${(++mountSequence).toString(36)}`
   const fitContent = (): void => editor.refresh()
 
   const resizeObserver = typeof ResizeObserver === 'function'
@@ -179,6 +181,12 @@ export function mount({ layer, runtime }: CanvasAddonMountContext): () => void {
     scheduleNextUpdate()
   }
 
+  const applyFontAppearance = (): void => {
+    const selected = settings.fontSource === 'remote' ? fontState.selected : undefined
+    widget.style.setProperty('--mw-dd-font-family', fontFamilyValue(selected?.alias ?? settings.fontFamily))
+    widget.style.setProperty('--mw-dd-font-weight', String(selected?.weight ?? fontWeight(settings.fontWeight)))
+    widget.style.setProperty('--mw-dd-font-style', selected?.style ?? settings.fontStyle)
+  }
   const applyAppearance = (): void => {
     widget.lang = resolvedLocale(settings.locale) ?? navigator.language ?? 'en'
     weekday.hidden = !settings.showDayOfWeek
@@ -191,10 +199,7 @@ export function mount({ layer, runtime }: CanvasAddonMountContext): () => void {
     widget.style.setProperty('--mw-dd-align', alignmentValue(settings.alignment))
     widget.style.setProperty('--mw-dd-content-align', alignmentValue(settings.alignment))
     widget.style.setProperty('--mw-dd-text-align', settings.alignment)
-    widget.style.setProperty('--mw-dd-font-family', fontFamilyValue(
-      fontFace && settings.fontSource === 'remote' ? instanceFontFamily : settings.fontFamily,
-    ))
-    widget.style.setProperty('--mw-dd-font-weight', settings.fontWeight)
+    applyFontAppearance()
     widget.style.setProperty('--mw-dd-transform', settings.textTransform)
     widget.style.setProperty('--mw-dd-day-size', `${clamp(settings.dayFontSize, 8, 160)}px`)
     widget.style.setProperty('--mw-dd-date-size', `${clamp(settings.dateFontSize, 8, 200)}px`)
@@ -218,67 +223,38 @@ export function mount({ layer, runtime }: CanvasAddonMountContext): () => void {
     value.fontResource?.kind ?? '',
     value.fontResource?.url ?? '',
     value.fontWeight,
+    value.fontStyle,
   ].join('\u0000')
 
-  const refreshFont = async (): Promise<void> => {
-    fontRequest += 1
-    const request = fontRequest
-    if (fontFace) document.fonts.delete(fontFace)
-    fontFace = null
-    fontStylesheet?.remove()
-    fontStylesheet = null
-    applyAppearance()
-    if (settings.fontSource !== 'remote') return
+  const fonts = createRemoteFonts(`mwdd-${createInstanceToken()}-${(++mountSequence).toString(36)}`, state => {
+    const previous = fontState.selected
+    fontState = state
+    if (JSON.stringify(previous) !== JSON.stringify(state.selected)) applyFontAppearance()
+    fitContent()
+  }, async resource => {
+    const resources = layer.resources as { resolve?: (value: ResourceValue) => Promise<string> } | undefined
+    return typeof resources?.resolve === 'function'
+      ? resources.resolve.call(layer.resources, resource) : resource.url
+  })
 
-    const selectedResource = settings.fontResource
-    const weight = settings.fontWeight
-    let url = selectedResource?.url ?? settings.fontUrl
-    if (selectedResource) {
-      if (!validHttpUrl(selectedResource.url)) return
-      const resources = layer.resources as { resolve?: (value: ResourceValue) => Promise<string> } | undefined
-      if (typeof resources?.resolve === 'function') {
-        try {
-          url = await resources.resolve.call(layer.resources, selectedResource)
-        } catch {
-          url = selectedResource.url
-        }
-      }
-    }
-    if (request !== fontRequest) return
-
-    if (selectedResource || isDirectFontFile(url)) {
-      if (!(selectedResource ? validResolvedFontUrl(url) : validHttpUrl(url))) return
-      if (typeof FontFace !== 'function') return
-      try {
-        const face = new FontFace(instanceFontFamily, `url(${JSON.stringify(url)})`, {
-          weight,
-        })
-        const loaded = await face.load()
-        if (request !== fontRequest) return
-        document.fonts.add(loaded)
-        fontFace = loaded
-        applyAppearance()
-        fitContent()
-      } catch {
-        // Keep the installed/system fallback if the optional file is unavailable.
-      }
-      return
-    }
-
-    if (!validHttpUrl(url)) return
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = url
-    link.referrerPolicy = 'no-referrer'
-    link.crossOrigin = 'anonymous'
-    document.head.append(link)
-    fontStylesheet = link
+  const refreshFont = (): Promise<void> => fonts.update({
+    remote: settings.fontSource === 'remote', resource: settings.fontResource, url: settings.fontUrl,
+    family: settings.fontFamily, weight: settings.fontWeight, style: settings.fontStyle,
+    // Include both cases for uppercase-only faces and unicode-range matching.
+    text: visibleFontText(),
+  })
+  function visibleFontText(): string {
+    const text = [weekday, date, time].filter(part => !part.hidden).map(part => part.textContent ?? '').join(' ')
+    return text + text.toLocaleUpperCase(resolvedLocale(settings.locale))
   }
 
   const applySettings = (values: AddonValues): void => {
     const previousFont = fontKey(settings)
+    const previousFormat = [settings.locale, settings.timeFormat, settings.showSeconds].join('\u0000')
     settings = readSettings(values)
-    formatters = createFormatters(settings)
+    if ([settings.locale, settings.timeFormat, settings.showSeconds].join('\u0000') !== previousFormat) {
+      formatters = createFormatters(settings)
+    }
     applyAppearance()
     renderClock()
     scheduleNextUpdate()
@@ -303,9 +279,7 @@ export function mount({ layer, runtime }: CanvasAddonMountContext): () => void {
     document.removeEventListener('visibilitychange', onResume)
     window.removeEventListener('focus', onResume)
     document.fonts.removeEventListener('loadingdone', fitContent)
-    fontRequest += 1
-    if (fontFace) document.fonts.delete(fontFace)
-    fontStylesheet?.remove()
+    fonts.dispose()
     layer.root.replaceChildren()
   }
 }
@@ -326,7 +300,8 @@ function readSettings(values: AddonValues): Settings {
     fontFamily: stringValue(values.fontFamily, defaults.fontFamily),
     fontUrl: stringValue(values.fontUrl, defaults.fontUrl),
     fontResource: resourceValue(values.fontResource),
-    fontWeight: enumValue(values.fontWeight, fontWeights, defaults.fontWeight),
+    fontWeight: String(fontWeight(values.fontVariantWeight || values.fontWeight)),
+    fontStyle: enumValue(values.fontStyle, ['normal', 'italic', 'oblique'] as const, defaults.fontStyle),
     alignment: enumValue(values.alignment, ['left', 'center', 'right'] as const, defaults.alignment),
     textTransform: enumValue(values.textTransform, ['none', 'uppercase', 'lowercase', 'capitalize'] as const, defaults.textTransform),
     dayFontSize: numberValue(values.dayFontSize, defaults.dayFontSize),
@@ -423,20 +398,6 @@ function resourceValue(value: unknown): ResourceValue | null {
   return value as unknown as ResourceValue
 }
 
-function validHttpUrl(value: string): boolean {
-  try {
-    const url = new URL(value)
-    return (url.protocol === 'https:' || url.protocol === 'http:') && url.hostname.length > 0
-      && url.username === '' && url.password === ''
-  } catch {
-    return false
-  }
-}
-
-function isDirectFontFile(value: string): boolean {
-  return /\.(?:woff2?|ttf|otf)(?:[?#].*)?$/iu.test(value)
-}
-
 function fontFamilyValue(value: string): string {
   const cleaned = value.replace(/[\u0000-\u001f"'\\]/gu, '').trim()
   const family = cleaned || defaults.fontFamily
@@ -500,9 +461,4 @@ function createInstanceToken(): string {
     return crypto.randomUUID().replace(/-/gu, '')
   }
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`
-}
-
-function validResolvedFontUrl(value: string): boolean {
-  if (validHttpUrl(value)) return true
-  return /^data:(?:font\/[\w.+-]+|application\/[\w.+-]+)(?:;|,)/iu.test(value)
 }

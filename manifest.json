@@ -2,7 +2,7 @@
   "runtime": "canvas-v1",
   "name": "Date Display",
   "description": "A clean, localized date, weekday and optional clock for your wallpaper.",
-  "version": "4.1.1",
+  "version": "4.1.2",
   "entry": "dist/assets/addon.js",
   "thumbnail": "assets/thumbnail.png",
   "deviceSettingsVersion": "1",
@@ -248,8 +248,8 @@
     {
       "id": "fontResource",
       "type": "resource",
-      "label": "Choose a font file",
-      "description": "Search for a font or enter a direct font file URL. Leave empty to use an installed font or the saved manual URL below.",
+      "label": "Font file or stylesheet",
+      "description": "Search for a font or paste a font file or stylesheet URL. Stylesheets are read live to detect families and variants.",
       "parent": "typography",
       "scope": "layer",
       "showIf": {
@@ -258,19 +258,11 @@
       }
     },
     {
-      "id": "legacyFontUrl",
-      "type": "section",
-      "label": "Manual font URL (earlier versions)",
-      "description": "Keeps saved stylesheet URLs working. New font picks use the resource selector above.",
-      "parent": "typography",
-      "defaultCollapsed": true
-    },
-    {
       "id": "fontUrl",
       "type": "string",
-      "label": "Manual font URL",
-      "description": "Supports saved stylesheet URLs and direct font file URLs.",
-      "parent": "legacyFontUrl",
+      "label": "Fallback font URL",
+      "description": "Used when no font resource is selected. Supports stylesheet and direct font file URLs.",
+      "parent": "typography",
       "scope": "layer",
       "default": "",
       "placeholder": "https://fonts.googleapis.com/css2?family=Inter",
@@ -287,29 +279,42 @@
       "scope": "layer",
       "default": "600",
       "options": [
+        { "label": "Light", "value": "300" },
+        { "label": "Regular", "value": "400" },
+        { "label": "Medium", "value": "500" },
+        { "label": "Semibold", "value": "600" },
+        { "label": "Bold", "value": "700" },
+        { "label": "Black", "value": "900" }
+      ]
+    },
+    {
+      "id": "fontVariantWeight",
+      "type": "string",
+      "label": "Custom weight",
+      "description": "Managed by the available font variants in the native editor. Optional numeric weight from 1 to 1000; empty uses Weight above.",
+      "parent": "typography",
+      "scope": "layer",
+      "default": ""
+    },
+    {
+      "id": "fontStyle",
+      "type": "select",
+      "label": "Style",
+      "parent": "typography",
+      "scope": "layer",
+      "default": "normal",
+      "options": [
         {
-          "label": "Light",
-          "value": "300"
+          "label": "Normal",
+          "value": "normal"
         },
         {
-          "label": "Regular",
-          "value": "400"
+          "label": "Italic",
+          "value": "italic"
         },
         {
-          "label": "Medium",
-          "value": "500"
-        },
-        {
-          "label": "Semibold",
-          "value": "600"
-        },
-        {
-          "label": "Bold",
-          "value": "700"
-        },
-        {
-          "label": "Black",
-          "value": "900"
+          "label": "Oblique",
+          "value": "oblique"
         }
       ]
     },
