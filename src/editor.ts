@@ -196,6 +196,8 @@ export function createDateEditor(
       if (event.phase === 'preview') { preview = updated; paint(updated); return }
       preview = undefined
       if (JSON.stringify(next) === JSON.stringify(layout[id])) { refresh(); return }
+      // Keep the final visual frame while the host saves; settings/cancel ends the preview.
+      preview = updated
       paint(updated)
       // The host persists this single declared value through its validated undo history.
       return { elementLayout: JSON.stringify(updated) }
